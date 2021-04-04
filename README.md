@@ -1,6 +1,6 @@
 # pynar_gui_designer
 
-## Resim sürükleyerek yapılan çalışma (kaydet yıklayınca json olarak pzisyonları üretir)
+## Resim sürükleyerek yapılan çalışma (kaydet yıklayınca json olarak pozisyonları üretir)
 
 ![image](https://user-images.githubusercontent.com/854154/113482847-210fce80-94a9-11eb-8008-e3f14f86f102.png)
 
@@ -37,3 +37,8 @@
   top.mainloop()  
   
  Kaynak: https://www.javatpoint.com/python-tkinter-entry
+ 
+ ## istediğim GUI design 
+ 
+ ![image](https://user-images.githubusercontent.com/854154/113505596-7f3fbe80-9548-11eb-907d-217bbca4901e.png)
+
