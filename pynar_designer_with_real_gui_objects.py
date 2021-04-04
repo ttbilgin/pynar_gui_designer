@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton,QLineEdit,QComboBox,QTabWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton,QLineEdit,QComboBox,QGroupBox
 from PyQt5.QtCore import Qt,QRect
 
 class DragButton(QComboBox):
@@ -78,15 +78,28 @@ if __name__ == "__main__":
     w.resize(800,600)
 
 
+    groupBox = QGroupBox(w)
+    groupBox.setTitle(u"Pencere Başlığı")
+    groupBox.setGeometry(QRect(180, 70, 271, 281))
+    groupBox.setStyleSheet(
+"""
+QGroupBox  {
+    border: 1px solid gray;
+    border-color: #FF17365D;
+    margin-top: 27px;
+    font-size: 12px;
+    background-color: white;
 
-    tabWidget = QTabWidget(w)
-    tabWidget.setObjectName(u"tabWidget")
-    tabWidget.setStyleSheet("QTabBar::tab { width: 270px; align:left;}");
-    tabWidget.setGeometry(QRect(180, 70, 271, 181))
-    tab = QWidget()
-    tab.setObjectName(u"tab")
-    tabWidget.addTab(tab, "Pencere Başlığı")
-
+}
+QGroupBox::title  {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 8px 8000px 5px 1px;
+    background-color: #FF17365D;
+    color: rgb(255, 255, 255);
+}
+"""
+)
     button = DragButton(w)
     #button.clicked.connect(clicked)
     button2 = DragButton2("tikla",w)
