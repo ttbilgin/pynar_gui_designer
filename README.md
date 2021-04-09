@@ -5,9 +5,9 @@
 
 ![image](https://user-images.githubusercontent.com/854154/114240448-2fba2200-9990-11eb-8abf-cafc97715dad.png)
 
+## Ne yapılacak?
 
-
-PyNar'a aktar deyince üretilmesi gereken Tkinter kodu (örnektir):
+Yukarıdaki pencereye bir Toolbar eklenecek. Toolbar üzerinde bir "Kod üret" butonu olacak. Bu butona tıklayınca ekranda (Örneğin)  3 label 3 Entry 2 buton var ise şu şekilde onların konumları ile birlikte aşağıdaki gibi bir Tkinter kodu üretecek.
 
   
   from tkinter import *  
@@ -36,7 +36,5 @@ PyNar'a aktar deyince üretilmesi gereken Tkinter kodu (örnektir):
   
  Kaynak: https://www.javatpoint.com/python-tkinter-entry
  
- ## istediğim GUI design 
- 
- ![image](https://user-images.githubusercontent.com/854154/113505596-7f3fbe80-9548-11eb-907d-217bbca4901e.png)
+
 
