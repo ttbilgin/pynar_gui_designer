@@ -3,7 +3,8 @@
 
 ## Taslak çalışma
 
-![image](https://user-images.githubusercontent.com/854154/113505248-430b5e80-9546-11eb-8d94-44fcf701bf18.png)
+![image](https://user-images.githubusercontent.com/854154/114240448-2fba2200-9990-11eb-8abf-cafc97715dad.png)
+
 
 
 PyNar'a aktar deyince üretilmesi gereken Tkinter kodu (örnektir):
