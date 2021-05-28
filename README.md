@@ -1,13 +1,10 @@
 # pynar_gui_designer
 
 
-## Taslak çalışma
-
-![image](https://user-images.githubusercontent.com/854154/114240448-2fba2200-9990-11eb-8abf-cafc97715dad.png)
 
 ## Ne yapılacak?
 
-Yukarıdaki pencereye bir Toolbar eklenecek. Toolbar üzerinde bir "Kod üret" butonu olacak. Bu butona tıklayınca ekranda (Örneğin)  3 label 3 Entry 2 buton var ise şu şekilde onların konumları ile birlikte aşağıdaki gibi bir Tkinter kodu üretecek.
+Toolbar üzerinde bir "Kod üret" butonu olacak. Bu butona tıklayınca ekranda (Örneğin)  3 label 3 Entry 2 buton var ise şu şekilde onların konumları ile birlikte aşağıdaki gibi bir Tkinter kodu üretecek.
 
   
   from tkinter import *  
