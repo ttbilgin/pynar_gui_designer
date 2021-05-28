@@ -2,9 +2,9 @@
 
 
 
-## Ne yapılacak?
+## Ne yapar?
 
-Toolbar üzerinde bir "Kod üret" butonu olacak. Bu butona tıklayınca ekranda (Örneğin)  3 label 3 Entry 2 buton var ise şu şekilde onların konumları ile birlikte aşağıdaki gibi bir Tkinter kodu üretecek.
+Toolbar üzerinde bir "Kod üret" butonu var. Bu butona tıklayınca ekranda (Örneğin)  3 label 3 Entry 2 buton var ise şu şekilde onların konumları ile birlikte aşağıdaki gibi bir Tkinter kodu üretir.
 
   
   from tkinter import *  
