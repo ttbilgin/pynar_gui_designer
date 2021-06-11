@@ -2,8 +2,41 @@ from PyQt5 import QtWidgets,QtGui, QtCore
 from PyQt5.QtCore import QDir, QFile, QUrl, Qt, QSize, QRect
 from PyQt5.QtGui import QGuiApplication, QFont, QTextCursor, QIcon
 from PyQt5.QtSql import QSqlDatabase
-from PyQt5.QtWidgets import QMenu, QAbstractItemView, QGridLayout, qApp, QAction, QMainWindow, QToolBar, QWidget,QApplication, QTextEdit, QPushButton, QLabel, QDesktopWidget, QCheckBox, QListWidget, QRadioButton, QScrollBar, QSpinBox, QPushButton,QLineEdit,QComboBox,QGroupBox,QPlainTextEdit, QMessageBox
+from PyQt5.QtWidgets import (QMenu, QAbstractItemView, QGridLayout, qApp, QAction, QMainWindow, QToolBar,
+QWidget,QApplication, QTextEdit, QPushButton, QLabel, QDesktopWidget, QCheckBox, QListWidget, QRadioButton, 
+QScrollBar, QSpinBox, QPushButton,QLineEdit,QComboBox,QGroupBox,QPlainTextEdit, QMessageBox, QMdiSubWindow, QMdiArea)
 from tkinter import *
+
+mainwindow_p = None
+
+class MdiWindow(QtWidgets.QMdiSubWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowSystemMenuHint)
+        self.setWindowTitle("Başlık")		
+        #self.setFixedSize(400, 80)
+
+    def closeEvent(self, event):
+        # do stuff
+        event.ignore()		
+
+    def mouseMoveEvent(self, event):
+        self.move(QtCore.QPoint(10,10))
+        super().mouseMoveEvent(event)
+    
+    #Pencere boyutunu sabitleme.
+    def readjustSize(self):
+        # print(corner_x)
+        # print(corner_y)
+        max_width = 0
+        max_length = 0
+        for i in mainwindow_p.penceredeki_itemler:
+            max_width = max(max_width, i.geometry().right() - mainwindow_p.AracKutusu.geometry().right())
+            max_length = max(max_length, i.geometry().bottom() - mainwindow_p.AracKutusu.geometry().top())
+        # currentSize = mainwindow_p.pencere.geometry().size()
+        self.setMinimumSize(max_width, max_length)
+        # mainwindow_p.pencere.geometry().setSize(currentSize)
+
 
 class MainClass(QMainWindow):
 
@@ -12,6 +45,14 @@ class MainClass(QMainWindow):
         self.setUI()
     
     def setUI(self):
+    
+        #Pointer
+        global mainwindow_p
+        mainwindow_p = self
+        
+        #Pencere içinde kalan itemleri saklamak için set
+        self.penceredeki_itemler = set()
+        
         self.w   = QWidget()
         self.w.resize(800,600)
 
@@ -32,12 +73,10 @@ class MainClass(QMainWindow):
         self.frame.setObjectName("frame")
         self.verticalLayout2 = QtWidgets.QVBoxLayout(self.frame)
         self.verticalLayout2.setObjectName("verticalLayout2")
-        self.pencere = QtWidgets.QGroupBox(self.frame)
-        self.pencere.setMinimumSize(QtCore.QSize(0, 300))
-        self.pencere.setStyleSheet("background-color: rgb(255, 255, 255);")
-        self.pencere.setObjectName("pencere")
-        self.pencere.setTitle("Pencere Başlığı")
-        self.verticalLayout2.addWidget(self.pencere)
+        self.pencere = MdiWindow() 
+        self.mdiarea = QMdiArea()
+        self.mdiarea.addSubWindow(self.pencere)
+        self.verticalLayout2.addWidget(self.mdiarea)
         self.copAlani = QtWidgets.QGroupBox(self.frame)
         self.copAlani.setMinimumSize(QtCore.QSize(300, 75))
         self.copAlani.setTitle("")
@@ -276,7 +315,8 @@ top.mainloop()""")
             self.mesajKutusu.exec()
     
     def eventFilter(self, obj, event):
-        if event.type() == QtCore.QEvent.MouseButtonRelease:
+        if event.type() == QtCore.QEvent.MouseButtonRelease: 
+            #Çop kutusu alanındaysa objeyi sol tarafa taşı.
             if (eval(f"self.{obj.objectName()}.pos().x() > self.AracKutusu.geometry().right() + self.copAlani.geometry().left()  - 31 and self.{obj.objectName()}.pos().x() < self.AracKutusu.geometry().right() + self.copAlani.geometry().left()  + 68 and self.{obj.objectName()}.pos().y() > self.copAlani.geometry().top() + 56 and self.{obj.objectName()}.pos().y() < self.copAlani.geometry().top() + 100")):
                 ObjectName = obj.objectName()[:-1]
                 if ObjectName == "comboBox":
@@ -298,9 +338,27 @@ top.mainloop()""")
                 elif ObjectName == "spinBox":
                     exec(f"self.{obj.objectName()}.move(45,340)")
                 else:
-                    exec(f"self.{obj.objectName()}.move(45,370)") 
+                    exec(f"self.{obj.objectName()}.move(45,370)")
+                self.penceredeki_itemler.remove(obj)
+            else:#Yoksa pencere dışındaysa pencerenin içine hareket ettir
+                #Xerr = X tarafa ne kadar hareket ettirilmesi lazım
+                Righterr = self.AracKutusu.geometry().right() + 15 + self.pencere.geometry().left() - obj.geometry().left() 
+                Lefterr = obj.geometry().right() - (self.AracKutusu.geometry().right() + self.pencere.geometry().right())
+                Boterr = self.pencere.geometry().top() + 75 - obj.geometry().top()
+                Toperr = obj.geometry().bottom() - (self.pencere.geometry().bottom() + 45)
+                #Eğer gereken miktar 0'dan büyükse o yöne doğru hareket ettir
+                if(Righterr > 0):
+                    obj.move(obj.pos().x() + Righterr, obj.pos().y())
+                if(Lefterr > 0):
+                    obj.move(obj.pos().x() - Lefterr, obj.pos().y())
+                if(Boterr > 0):
+                    obj.move(obj.pos().x(), obj.pos().y() + Boterr)
+                if(Toperr > 0):
+                    obj.move(obj.pos().x(), obj.pos().y() - Toperr)
+                self.penceredeki_itemler.add(obj)
+            mainwindow_p.pencere.readjustSize()
         return super().eventFilter(obj, event)
-
+        
 class PLabel(QLabel):
     
     def __init__(self, parent = None):
