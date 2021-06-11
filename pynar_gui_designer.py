@@ -49,12 +49,13 @@ class MainClass(QMainWindow):
         #Pointer
         global mainwindow_p
         mainwindow_p = self
+        self.setFixedSize(800,600)
         
         #Pencere içinde kalan itemleri saklamak için set
         self.penceredeki_itemler = set()
         
         self.w   = QWidget()
-        self.w.resize(800,600)
+        #self.w.resize(1000,800)
 
         self.verticalLayout = QtWidgets.QVBoxLayout(self.w)
         self.toolbar = QToolBar(self.w)
