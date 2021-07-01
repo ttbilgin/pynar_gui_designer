@@ -13,7 +13,8 @@ class MdiWindow(QtWidgets.QMdiSubWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowSystemMenuHint)
-        self.setWindowTitle("Başlık")		
+        self.setWindowTitle("Başlık")
+        self.props = ["title"]	
         #self.setFixedSize(400, 80)
 
     def closeEvent(self, event):
@@ -23,6 +24,11 @@ class MdiWindow(QtWidgets.QMdiSubWindow):
     def mouseMoveEvent(self, event):
         self.move(QtCore.QPoint(10,10))
         super().mouseMoveEvent(event)
+    
+    def mousePressEvent(self, event):
+        event.accept()
+        mainwindow_p.createobjectprops(self)
+        super().mousePressEvent(event)
     
     #Pencere boyutunu sabitleme.
     def readjustSize(self):
@@ -53,6 +59,9 @@ class MainClass(QMainWindow):
         
         #Pencere içinde kalan itemleri saklamak için set
         self.penceredeki_itemler = set()
+        
+        #Seçili obje için değişken
+        self.selected = None
         
         self.w   = QWidget()
         #self.w.resize(1000,800)
@@ -127,7 +136,7 @@ class MainClass(QMainWindow):
         self.kodaDonustur.setShortcut('Ctrl+Q')
         self.kodaDonustur.triggered.connect(self.kodaDonusturFonksiyonu)
         self.toolbar.addAction(self.kodaDonustur)
-
+        
         for k in range(5,0,-1):
             # toolbox'da Combobox oluştur
             exec(f'self.comboBox{k} = PComboBox(self.w)')
@@ -221,6 +230,31 @@ class MainClass(QMainWindow):
         self.kodBlogu = QPlainTextEdit()
         #self.kodBlogu.setGeometry(80,380,600,150)
         
+        # Özellik penceresi oluştur
+        
+        self.grouplayout = QtWidgets.QVBoxLayout(self.groupBox)
+        
+        self.groupBox.ozellik_text = QLineEdit()
+        self.groupBox.textcol_label = QLabel("Yazı:")
+        self.textcol_layout = QtWidgets.QHBoxLayout()
+        self.textcol_layout.addWidget(self.groupBox.textcol_label)
+        self.textcol_layout.addWidget(self.groupBox.ozellik_text)
+        self.grouplayout.addLayout(self.textcol_layout)
+        self.groupBox.textcol_label.hide()
+        self.groupBox.ozellik_text.hide()
+        
+        self.groupBox.ozellik_baslik = QLineEdit()
+        self.groupBox.titlecol_label = QLabel("Başlık:")
+        self.titlecol_layout = QtWidgets.QHBoxLayout()
+        self.titlecol_layout.addWidget(self.groupBox.titlecol_label)
+        self.titlecol_layout.addWidget(self.groupBox.ozellik_baslik)
+        self.grouplayout.addLayout(self.titlecol_layout)
+        self.groupBox.titlecol_label.hide()
+        self.groupBox.ozellik_baslik.hide()
+        
+        self.grouplayout.addStretch()
+        
+        
         self.w.show()
 
     def myListWidgetContext(self,position):
@@ -257,7 +291,7 @@ class MainClass(QMainWindow):
             exec(f"self.{objName}.move(45,340)")
         else:
             exec(f"self.{objName}.move(45,370)") 
-
+    
     def kodaDonusturFonksiyonu(self):
         try:
             self.kodBlogu.insertPlainText(f"""from tkinter import *   
@@ -358,13 +392,45 @@ top.mainloop()""")
                     obj.move(obj.pos().x(), obj.pos().y() - Toperr)
                 self.penceredeki_itemler.add(obj)
             mainwindow_p.pencere.readjustSize()
+        if event.type() == QtCore.QEvent.MouseButtonPress:
+            if obj in self.penceredeki_itemler:
+                self.createobjectprops(obj)
         return super().eventFilter(obj, event)
+    
+    def createobjectprops(self, obj):
+        self.selected = obj
+        self.deleteobjectprops()
         
+        if "text" in obj.props:
+            self.groupBox.textcol_label.show()
+            self.groupBox.ozellik_text.show()
+            self.groupBox.ozellik_text.textChanged.connect(self.mirrorText)
+            self.groupBox.ozellik_text.setText(obj.text())
+            
+            
+        if "title" in obj.props:
+            self.groupBox.titlecol_label.show()
+            self.groupBox.ozellik_baslik.show()
+            self.groupBox.ozellik_baslik.textChanged.connect(self.mirrorText)
+            self.groupBox.ozellik_baslik.setText(obj.windowTitle())
+    
+    def deleteobjectprops(self):
+        for i in self.groupBox.findChildren(QWidget):
+            i.hide()
+
+    def mirrorText(self, obj):
+        if "text" in self.selected.props:
+            self.selected.setText(self.groupBox.ozellik_text.text())
+        if "title" in self.selected.props:
+            self.selected.setWindowTitle(self.groupBox.ozellik_baslik.text())
+
+
 class PLabel(QLabel):
     
     def __init__(self, parent = None):
         super(PLabel, self).__init__(parent)
         self.name = ""
+        self.props=["text"]
         #self.setMinimumSize(75,60)
 
     def mousePressEvent(self, event):
@@ -405,6 +471,7 @@ class PSpinBox(QSpinBox):
     def __init__(self, parent = None):
         super(PSpinBox, self).__init__(parent)
         self.name = ""
+        self.props = []
         #self.setMinimumSize(75,60)
     
     def mousePressEvent(self, event):
@@ -444,6 +511,7 @@ class PPlainTextEdit(QPlainTextEdit):
     def __init__(self, parent = None):
         super(PPlainTextEdit, self).__init__(parent)
         self.name = ""
+        self.props = []
         #self.setMinimumSize(75,60)
     
     def mousePressEvent(self, event):
@@ -484,6 +552,7 @@ class PScrollBar(QScrollBar):
     def __init__(self, parent = None):
         super(PScrollBar, self).__init__(parent)
         self.name = ""
+        self.props = []
         #self.setMinimumSize(75,60)
     
     def mousePressEvent(self, event):
@@ -524,6 +593,7 @@ class PRadioButton(QRadioButton):
     def __init__(self, parent = None):
         super(PRadioButton, self).__init__(parent)
         self.name = ""
+        self.props = ["text"]
         #self.setMinimumSize(75,60)
     
     def mousePressEvent(self, event):
@@ -564,6 +634,7 @@ class PComboBox(QComboBox):
     def __init__(self, parent = None):
         super(PComboBox, self).__init__(parent)
         self.name = ""
+        self.props = []
         #self.setMinimumSize(75,60)
 
     def mousePressEvent(self, event):
@@ -603,6 +674,7 @@ class PListWidget(QListWidget):
     def __init__(self, parent = None):
         super(PListWidget, self).__init__(parent)
         self.name = ""
+        self.props = []
         #self.setMinimumSize(75,60)
 
     def mousePressEvent(self, event):
@@ -643,6 +715,7 @@ class PCheckButton(QCheckBox):
     def __init__(self, parent = None):
         super(PCheckButton, self).__init__(parent)
         self.name = ""
+        self.props = ["text"]
         #self.setMinimumSize(75,60)
 
     def mousePressEvent(self, event):
@@ -682,6 +755,7 @@ class PLineEdit(QLineEdit):
     def __init__(self, parent = None):
         super(PLineEdit, self).__init__(parent)
         self.name = ""
+        self.props = []
         #self.setMinimumSize(75,60)
 
     def mousePressEvent(self, event):
@@ -723,6 +797,7 @@ class PPushButton(QPushButton):
     def __init__(self, parent = None):
         super(PPushButton, self).__init__(parent)
         self.name = ""
+        self.props = ["text"]
         #self.setMinimumSize(75,60)
 
     
@@ -765,6 +840,7 @@ class PGroupBox(QGroupBox):
     def __init__(self, parent = None):
         super(PGroupBox, self).__init__(parent)
         self.name = ""
+        self.props = []
         #self.setMinimumSize(150,100)
 
     
