@@ -4,17 +4,23 @@ from PyQt5.QtGui import QGuiApplication, QFont, QTextCursor, QIcon
 from PyQt5.QtSql import QSqlDatabase
 from PyQt5.QtWidgets import (QMenu, QAbstractItemView, QGridLayout, qApp, QAction, QMainWindow, QToolBar,
 QWidget,QApplication, QTextEdit, QPushButton, QLabel, QDesktopWidget, QCheckBox, QListWidget, QRadioButton, 
-QScrollBar, QSpinBox, QPushButton,QLineEdit,QComboBox,QGroupBox,QPlainTextEdit, QMessageBox, QMdiSubWindow, QMdiArea)
+QSlider, QSpinBox, QPushButton,QLineEdit,QComboBox,QGroupBox,QPlainTextEdit, QMessageBox, QMdiSubWindow, QMdiArea, QColorDialog)
 from tkinter import *
+
+import saveload
 
 mainwindow_p = None
 
+DEFAULT_WINDOW_COLOR = "#f0f0f0"
+
 class MdiWindow(QtWidgets.QMdiSubWindow):
+    color = DEFAULT_WINDOW_COLOR
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowSystemMenuHint)
         self.setWindowTitle("Başlık")
-        self.props = ["title"]	
+        self.props = ["title", "color", "width", "height"]
+        self.setStyleSheet(f"background-color: {DEFAULT_WINDOW_COLOR};")
         #self.setFixedSize(400, 80)
 
     def closeEvent(self, event):
@@ -27,8 +33,16 @@ class MdiWindow(QtWidgets.QMdiSubWindow):
     
     def mousePressEvent(self, event):
         event.accept()
-        mainwindow_p.createobjectprops(self)
+        mainwindow_p.onClick(self)
         super().mousePressEvent(event)
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        try:
+            mainwindow_p.groupBox.ozellik_yukseklik_textbox.setText(str(self.size().height()))
+            mainwindow_p.groupBox.ozellik_genislik_textbox.setText(str(self.size().width()))
+        except AttributeError:
+            pass
     
     #Pencere boyutunu sabitleme.
     def readjustSize(self):
@@ -112,35 +126,24 @@ class MainClass(QMainWindow):
         # self.horizontalLayout.setStretch(1, 10)
         # self.horizontalLayout.setStretch(2, 2)
 
-        self.pencere.setStyleSheet(
-        """
-        QGroupBox  {
-            border: 1px solid gray;
-            border-color: #FF17365D;
-            margin-top: 27px;
-            font-size: 12px;
-            background-color: white;
-
-        }
-        QGroupBox::title  {
-            subcontrol-origin: margin;
-            subcontrol-position: top left;
-            padding: 8px 8000px 5px 1px;
-            background-color: #FF17365D;
-            color: rgb(255, 255, 255);
-        }
-        """
-        )
-
         self.kodaDonustur = QAction(QIcon('assets/headerLogo1.png'), 'Tasarımınızı PyNar Editörüne Aktarın', self)
         self.kodaDonustur.setShortcut('Ctrl+Q')
         self.kodaDonustur.triggered.connect(self.kodaDonusturFonksiyonu)
         self.toolbar.addAction(self.kodaDonustur)
         
+        self.kaydet = QAction(QIcon('assets/savefile.png'), 'Tasarımınızı Kaydedin', self)
+        self.kaydet.setShortcut('Ctrl+S')
+        self.kaydet.triggered.connect(self.kaydetFonksiyonu)
+        self.toolbar.addAction(self.kaydet)
+        
+        self.yukle = QAction(QIcon('assets/loadfile.png'), 'Tasarım Yükleyin', self)
+        self.yukle.triggered.connect(self.yukleFonksiyonu)
+        self.toolbar.addAction(self.yukle)
+        
         for k in range(5,0,-1):
             # toolbox'da Combobox oluştur
             exec(f'self.comboBox{k} = PComboBox(self.w)')
-            exec(f'self.comboBox{k}.setGeometry(45, 80, 100, 20)')
+            exec(f'self.comboBox{k}.setGeometry(45, 80, 100, 25)')
             exec(f"self.comboBox{k}.setObjectName('comboBox{k}')")
             exec(f"self.comboBox{k}.installEventFilter(self)")
             exec(f'self.comboBox{k}.setContextMenuPolicy(Qt.CustomContextMenu)')
@@ -149,7 +152,7 @@ class MainClass(QMainWindow):
 
             # toolbox'da 3 PushButton oluştur
             exec(f'self.buton{k} = PPushButton(self.w)')
-            exec(f'self.buton{k}.setGeometry(45, 110, 100, 20)')
+            exec(f'self.buton{k}.setGeometry(45, 110, 100, 25)')
             exec(f"self.buton{k}.setObjectName('buton{k}')")
             exec(f"self.buton{k}.installEventFilter(self)")
             exec(f"self.buton{k}.setText('Buton')")
@@ -158,7 +161,7 @@ class MainClass(QMainWindow):
 
             # toolbox'da LineEdit oluştur
             exec(f'self.lineEdit{k} = PLineEdit(self.w)')
-            exec(f'self.lineEdit{k}.setGeometry(45, 140, 100, 20)')
+            exec(f'self.lineEdit{k}.setGeometry(45, 140, 100, 25)')
             exec(f"self.lineEdit{k}.setObjectName('lineEdit{k}')")
             exec(f"self.lineEdit{k}.installEventFilter(self)")
             exec(f"self.lineEdit{k}.setText('Metin Kutusu')")
@@ -167,7 +170,7 @@ class MainClass(QMainWindow):
 
             # toolbox'da Label oluştur
             exec(f'self.label{k} = PLabel(self.w)')
-            exec(f'self.label{k}.setGeometry(45, 170, 100, 20)')
+            exec(f'self.label{k}.setGeometry(45, 170, 100, 25)')
             exec(f"self.label{k}.setObjectName('label{k}')")
             exec(f"self.label{k}.installEventFilter(self)")
             exec(f"self.label{k}.setText('Etiket')")
@@ -176,7 +179,7 @@ class MainClass(QMainWindow):
 
             # toolbox'da checkbutton oluştur    
             exec(f'self.checkButton{k} = PCheckButton(self.w)')
-            exec(f'self.checkButton{k}.setGeometry(45, 200, 100, 20)')
+            exec(f'self.checkButton{k}.setGeometry(45, 200, 100, 25)')
             exec(f"self.checkButton{k}.installEventFilter(self)")
             exec(f"self.checkButton{k}.setObjectName('checkButton{k}')")
             exec(f"self.checkButton{k}.setText('Kontrol Butonu')")
@@ -194,7 +197,7 @@ class MainClass(QMainWindow):
 
             # toolbox'da radiobuton oluştur
             exec(f'self.radioButton{k} = PRadioButton(self.w)')
-            exec(f'self.radioButton{k}.setGeometry(45, 280, 100, 20)')
+            exec(f'self.radioButton{k}.setGeometry(45, 280, 100, 25)')
             exec(f"self.radioButton{k}.installEventFilter(self)")
             exec(f"self.radioButton{k}.setObjectName('radioButton{k}')")
             exec(f"self.radioButton{k}.setText('Radyo Butonu')")
@@ -202,8 +205,8 @@ class MainClass(QMainWindow):
             exec(f'self.radioButton{k}.customContextMenuRequested.connect(self.myListWidgetContext)')
 
             # toolbox'da scrollbar oluştur
-            exec(f'self.scrollBar{k} = PScrollBar(self.w)')
-            exec(f'self.scrollBar{k}.setGeometry(45, 310, 100, 20)')
+            exec(f'self.scrollBar{k} = PSlider(Qt.Horizontal, self.w)')
+            exec(f'self.scrollBar{k}.setGeometry(45, 310, 100, 25)')
             exec(f"self.scrollBar{k}.setObjectName('scrollBar{k}')")
             exec(f"self.scrollBar{k}.installEventFilter(self)")
             exec(f'self.scrollBar{k}.setContextMenuPolicy(Qt.CustomContextMenu)')
@@ -211,7 +214,7 @@ class MainClass(QMainWindow):
 
             # toolbox'da spinbox oluştur
             exec(f'self.spinBox{k} = PSpinBox(self.w)')
-            exec(f'self.spinBox{k}.setGeometry(45, 340, 100, 20)')
+            exec(f'self.spinBox{k}.setGeometry(45, 340, 100, 25)')
             exec(f"self.spinBox{k}.setObjectName('spinBox{k}')")
             exec(f"self.spinBox{k}.installEventFilter(self)")
             exec(f'self.spinBox{k}.setContextMenuPolicy(Qt.CustomContextMenu)')
@@ -232,29 +235,63 @@ class MainClass(QMainWindow):
         
         # Özellik penceresi oluştur
         
-        self.grouplayout = QtWidgets.QVBoxLayout(self.groupBox)
+        # Özellik penceresinin layout'unu oluştur.
+        self.ozellik_layout = QtWidgets.QVBoxLayout(self.groupBox)
         
-        self.groupBox.ozellik_text = QLineEdit()
-        self.groupBox.textcol_label = QLabel("Yazı:")
-        self.textcol_layout = QtWidgets.QHBoxLayout()
-        self.textcol_layout.addWidget(self.groupBox.textcol_label)
-        self.textcol_layout.addWidget(self.groupBox.ozellik_text)
-        self.grouplayout.addLayout(self.textcol_layout)
-        self.groupBox.textcol_label.hide()
-        self.groupBox.ozellik_text.hide()
+        #Metin(text) özelliğine denk gelen özellik penceresi widgetları'nı oluşturma ve düzenleme.
+        self.groupBox.ozellik_metin_textbox = QLineEdit()
+        self.groupBox.ozellik_metin_label = QLabel("Yazı:")
+        self.ozellik_metin_layout = QtWidgets.QHBoxLayout()
+        self.ozellik_metin_layout.addWidget(self.groupBox.ozellik_metin_label)
+        self.ozellik_metin_layout.addWidget(self.groupBox.ozellik_metin_textbox)
+        self.ozellik_layout.addLayout(self.ozellik_metin_layout)
         
-        self.groupBox.ozellik_baslik = QLineEdit()
-        self.groupBox.titlecol_label = QLabel("Başlık:")
-        self.titlecol_layout = QtWidgets.QHBoxLayout()
-        self.titlecol_layout.addWidget(self.groupBox.titlecol_label)
-        self.titlecol_layout.addWidget(self.groupBox.ozellik_baslik)
-        self.grouplayout.addLayout(self.titlecol_layout)
-        self.groupBox.titlecol_label.hide()
-        self.groupBox.ozellik_baslik.hide()
+        #Başlık(title) özelliğine denk gelen özellik penceresi widgetları'nı oluşturma ve düzenleme.
+        self.groupBox.ozellik_baslik_textbox = QLineEdit()
+        self.groupBox.ozellik_baslik_label = QLabel("Başlık:")
+        self.ozellik_baslik_layout = QtWidgets.QHBoxLayout()
+        self.ozellik_baslik_layout.addWidget(self.groupBox.ozellik_baslik_label)
+        self.ozellik_baslik_layout.addWidget(self.groupBox.ozellik_baslik_textbox)
+        self.ozellik_layout.addLayout(self.ozellik_baslik_layout)
         
-        self.grouplayout.addStretch()
+        #Renk(color) özelliğine denk gelen özellik penceresi widgetları'nı oluşturma ve düzenleme.
+        self.groupBox.ozellik_renk_textbox = ColorLineEdit(self)
+        self.groupBox.ozellik_renk_label = QLabel("Renk:")
+        self.ozellik_renk_layout = QtWidgets.QHBoxLayout()
+        self.ozellik_renk_layout.addWidget(self.groupBox.ozellik_renk_label)
+        self.ozellik_renk_layout.addWidget(self.groupBox.ozellik_renk_textbox)
+        self.ozellik_layout.addLayout(self.ozellik_renk_layout)
         
+        #Boyut özelliğinin metin kutusuna sadece sayı girilmesini sağlamak için gerekli
+        self.intonly = QtGui.QIntValidator()
         
+        #Boyut(size) özelliğine denk gelen özellik penceresi widgetları'nı oluşturma ve düzenleme.
+        
+        #Genişlik
+        
+        self.groupBox.ozellik_genislik_textbox = QLineEdit()
+        self.groupBox.ozellik_genislik_textbox.setValidator(self.intonly)
+        self.groupBox.ozellik_genislik_label = QLabel("Genişlik:")
+        self.ozellik_genislik_layout = QtWidgets.QHBoxLayout()
+        self.ozellik_genislik_layout.addWidget(self.groupBox.ozellik_genislik_label)
+        self.ozellik_genislik_layout.addWidget(self.groupBox.ozellik_genislik_textbox)
+        self.ozellik_layout.addLayout(self.ozellik_genislik_layout)
+        
+        #Yükseklik
+        
+        self.groupBox.ozellik_yukseklik_textbox = QLineEdit()
+        self.groupBox.ozellik_yukseklik_textbox.setValidator(self.intonly)
+        self.groupBox.ozellik_yukseklik_label = QLabel("Yükseklik:")
+        self.ozellik_yukseklik_layout = QtWidgets.QHBoxLayout()
+        self.ozellik_yukseklik_layout.addWidget(self.groupBox.ozellik_yukseklik_label)
+        self.ozellik_yukseklik_layout.addWidget(self.groupBox.ozellik_yukseklik_textbox)
+        self.ozellik_layout.addLayout(self.ozellik_yukseklik_layout)
+        
+        #Özellik penceresini üste hizalı olacak şekilde düzenleme ve bütün widget'ları görünmez yapma
+        self.ozellik_layout.addStretch()
+        self.hideObjectProps()
+        
+        #Pencereyi gösterme
         self.w.show()
 
     def myListWidgetContext(self,position):
@@ -293,46 +330,147 @@ class MainClass(QMainWindow):
             exec(f"self.{objName}.move(45,370)") 
     
     def kodaDonusturFonksiyonu(self):
-        try:
-            self.kodBlogu.insertPlainText(f"""from tkinter import *   
-from tkinter import ttk
-top = Tk()
-top.geometry("{self.pencere.geometry().right()}x{self.pencere.geometry().bottom() - 30 }")""")
-
-            for k in range(1,6,1):
-                exec(f"""if (self.label{k}.pos().x() > self.AracKutusu.geometry().right() and self.label{k}.pos().x() < self.pencere.geometry().right() + self.AracKutusu.geometry().right() and self.label{k}.pos().y() > self.pencere.geometry().top() and self.label{k}.pos().y() < self.pencere.geometry().bottom() + 33) : 
-        self.kodBlogu.insertPlainText("\\nlabel{k} = Label(top, text = 'label{k}').place(width=100, height=20, x = " + str(self.label{k}.pos().x() - self.AracKutusu.geometry().right() - 15) + ", y = " + str(self.label{k}.pos().y() - self.pencere.geometry().top() - 79)+")")""")
-                
-                exec(f"""if (self.buton{k}.pos().x() > self.AracKutusu.geometry().right() and self.buton{k}.pos().x() < self.pencere.geometry().right() + self.AracKutusu.geometry().right() and self.buton{k}.pos().y() > self.pencere.geometry().top() and self.buton{k}.pos().y() < self.pencere.geometry().bottom() + 33) : 
-        self.kodBlogu.insertPlainText("\\nbuton{k} = Button(top, text = 'buton{k}').place(width=100, height=20, x = " + str(self.buton{k}.pos().x() - self.AracKutusu.geometry().right() - 15) + ", y = " + str(self.buton{k}.pos().y() - self.pencere.geometry().top() - 79)+")")""")
-                
-                exec(f"""if (self.lineEdit{k}.pos().x() > self.AracKutusu.geometry().right() and self.lineEdit{k}.pos().x() < self.pencere.geometry().right() + self.AracKutusu.geometry().right() and self.lineEdit{k}.pos().y() > self.pencere.geometry().top() and self.lineEdit{k}.pos().y() < self.pencere.geometry().bottom() + 33) : 
-        self.kodBlogu.insertPlainText("\\nlineEdit{k} = Entry(top, text = 'lineEdit{k}').place(width=100, height=20, x = " + str(self.lineEdit{k}.pos().x() - self.AracKutusu.geometry().right() - 15) + ", y = " + str(self.lineEdit{k}.pos().y() - self.pencere.geometry().top() - 79)+")")""")
-                
-                exec(f"""if (self.comboBox{k}.pos().x() > self.AracKutusu.geometry().right() and self.comboBox{k}.pos().x() < self.pencere.geometry().right() + self.AracKutusu.geometry().right() and self.comboBox{k}.pos().y() > self.pencere.geometry().top() and self.comboBox{k}.pos().y() < self.pencere.geometry().bottom() + 33) : 
-        self.kodBlogu.insertPlainText("\\ncomboBox{k} = ttk.Combobox(top, text = 'comboBox{k}').place(width=100, height=20, x = " + str(self.comboBox{k}.pos().x() - self.AracKutusu.geometry().right() - 15) + ", y = " + str(self.comboBox{k}.pos().y() - self.pencere.geometry().top() - 79)+")")""")
-                
-                exec(f"""if (self.checkButton{k}.pos().x() > self.AracKutusu.geometry().right() and self.checkButton{k}.pos().x() < self.pencere.geometry().right() + self.AracKutusu.geometry().right() and self.checkButton{k}.pos().y() > self.pencere.geometry().top() and self.checkButton{k}.pos().y() < self.pencere.geometry().bottom() + 33) : 
-        self.kodBlogu.insertPlainText("\\ncheckButton{k} = Checkbutton(top, text = 'checkButton{k}').place(width=100, height=20, x = " + str(self.checkButton{k}.pos().x() - self.AracKutusu.geometry().right() - 15) + ", y = " + str(self.checkButton{k}.pos().y() - self.pencere.geometry().top() - 79)+")")""")
-                
-                exec(f"""if (self.listBox{k}.pos().x() > self.AracKutusu.geometry().right() and self.listBox{k}.pos().x() < self.pencere.geometry().right() + self.AracKutusu.geometry().right() and self.listBox{k}.pos().y() > self.pencere.geometry().top() and self.listBox{k}.pos().y() < self.pencere.geometry().bottom() + 33) : 
-        self.kodBlogu.insertPlainText("\\nlistBox{k} = Listbox(top).place(width=100, height=40, x = " + str(self.listBox{k}.pos().x() - self.AracKutusu.geometry().right() - 15) + ", y = " + str(self.listBox{k}.pos().y() - self.pencere.geometry().top() - 79)+")")""")
-                
-                exec(f"""if (self.radioButton{k}.pos().x() > self.AracKutusu.geometry().right() and self.radioButton{k}.pos().x() < self.pencere.geometry().right() + self.AracKutusu.geometry().right() and self.radioButton{k}.pos().y() > self.pencere.geometry().top() and self.radioButton{k}.pos().y() < self.pencere.geometry().bottom() + 33) : 
-        self.kodBlogu.insertPlainText("\\nradioButton{k} = Radiobutton(top, text = 'radioButton{k}').place(width=100, height=20, x = " + str(self.radioButton{k}.pos().x() - self.AracKutusu.geometry().right() - 15) + ", y = " + str(self.radioButton{k}.pos().y() - self.pencere.geometry().top() - 79)+")")""")
-                
-                exec(f"""if (self.scrollBar{k}.pos().x() > self.AracKutusu.geometry().right() and self.scrollBar{k}.pos().x() < self.pencere.geometry().right() + self.AracKutusu.geometry().right() and self.scrollBar{k}.pos().y() > self.pencere.geometry().top() and self.scrollBar{k}.pos().y() < self.pencere.geometry().bottom() + 33) : 
-        self.kodBlogu.insertPlainText("\\nscrollBar{k} = Scale(top).place(width=100, height=20, x = " + str(self.scrollBar{k}.pos().x() - self.AracKutusu.geometry().right() - 15) + ", y = " + str(self.scrollBar{k}.pos().y() - self.pencere.geometry().top() - 79)+")")""")
-                
-                exec(f"""if (self.spinBox{k}.pos().x() > self.AracKutusu.geometry().right() and self.spinBox{k}.pos().x() < self.pencere.geometry().right() + self.AracKutusu.geometry().right() and self.spinBox{k}.pos().y() > self.pencere.geometry().top() and self.spinBox{k}.pos().y() < self.pencere.geometry().bottom() + 33) : 
-        self.kodBlogu.insertPlainText("\\nspinBox{k} = Spinbox(top, text = 'spinBox{k}').place(width=100, height=20, x = " + str(self.spinBox{k}.pos().x() - self.AracKutusu.geometry().right() - 15) + ", y = " + str(self.spinBox{k}.pos().y() - self.pencere.geometry().top() - 79)+")")""")
-                
-                exec(f"""if (self.PlainTextEdit{k}.pos().x() > self.AracKutusu.geometry().right() and self.PlainTextEdit{k}.pos().x() < self.pencere.geometry().right() + self.AracKutusu.geometry().right() and self.PlainTextEdit{k}.pos().y() > self.pencere.geometry().top() and self.PlainTextEdit{k}.pos().y() < self.pencere.geometry().bottom() + 33) : 
-        self.kodBlogu.insertPlainText("\\ntext{k} = Text(top).place(width=100, height=40, x = " + str(self.PlainTextEdit{k}.pos().x() - self.AracKutusu.geometry().right() - 15) + ", y = " + str(self.PlainTextEdit{k}.pos().y() - self.pencere.geometry().top() - 79)+")")""")
+        counter = 0
+        self.kodBlogu.clear()
+        self.kodBlogu.insertPlainText(f"""import tkinter as tk
+import tkinter.ttk as ttk
+class App:
+    def __init__(self,root):
+        self.s = ttk.Style()
+        self.s.theme_use('alt')
+        root.geometry("{self.pencere.geometry().right()}x{self.pencere.geometry().bottom() - 30 }")
+        """)
+        counter = 0
+        commands = ""
+        for i in self.penceredeki_itemler:
+            counter += 1
+            try:
+                if(i.color == ""):
+                    i.color = self.pencere.color
+            except:
+                pass
+            q_origin_class_name = type(i).__bases__[0].__name__
             
-            self.kodBlogu.insertPlainText("""
-top.mainloop()""")
-            f = open("pui.py", "w")
+            #Combobox
+            
+            if(q_origin_class_name == "QComboBox"):
+                self.kodBlogu.insertPlainText(f"""
+        self.s.map("self.Combobox{counter}.TCombobox", fieldbackground = [('!active', '{i.color}'), ('active', '{i.color}'), ('pressed', '{i.color}')])
+        self.Combobox{counter} = ttk.Combobox(root, style = "self.Combobox{counter}.TCombobox")
+        self.Combobox{counter}.place(width={i.size().width()}, height={i.size().height()}, x = {i.pos().x() - self.AracKutusu.geometry().right() - 15}, y = {i.pos().y() - self.pencere.geometry().top() - 79})
+""")
+            
+            #Button
+            
+            if(q_origin_class_name == "QPushButton"):
+                self.kodBlogu.insertPlainText(f"""
+        self.s.map("self.Button{counter}.TButton", background = [('!active', '{i.color}'), ('active', '{i.color}'), ('pressed', '{i.color}')])
+        self.Button{counter} = ttk.Button(root, text = "{i.text()}", command = self.Button{counter}clicked, style = "self.Button{counter}.TButton")
+        self.Button{counter}.place(width={i.size().width()}, height={i.size().height()}, x = {i.pos().x() - self.AracKutusu.geometry().right() - 15}, y = {i.pos().y() - self.pencere.geometry().top() - 79})
+""")
+                commands += f"""
+    def Button{counter}clicked(self):
+        print("Button{counter} clicked")
+"""
+            
+            #LineEdit/Entry
+            
+            if(q_origin_class_name == "QLineEdit"):
+                self.kodBlogu.insertPlainText(f"""
+        self.s.map("self.Entry{counter}.TEntry", fieldbackground = [('!active', '{i.color}'), ('active', '{i.color}'), ('pressed', '{i.color}')])
+        self.Entry{counter} = ttk.Entry(root, text = "{i.text()}", style = "self.Entry{counter}.TEntry")
+        self.Entry{counter}.place(width={i.size().width()}, height={i.size().height()}, x = {i.pos().x() - self.AracKutusu.geometry().right() - 15}, y = {i.pos().y() - self.pencere.geometry().top() - 79})
+""")
+            
+            #Label
+            
+            if(q_origin_class_name == "QLabel"):
+                self.kodBlogu.insertPlainText(f"""
+        self.s.map("self.Label{counter}.TLabel", background = [('!active', '{i.color}'), ('active', '{i.color}'), ('pressed', '{i.color}')])
+        self.Label{counter} = ttk.Label(root, text = "{i.text()}", style = "self.Label{counter}.TLabel")
+        self.Label{counter}.place(width={i.size().width()}, height={i.size().height()}, x = {i.pos().x() - self.AracKutusu.geometry().right() - 15}, y = {i.pos().y() - self.pencere.geometry().top() - 79})
+""")
+            
+            #Checkbox/Checkbutton
+            
+            if(q_origin_class_name == "QCheckBox"):
+                self.kodBlogu.insertPlainText(f"""
+        self.s.map("self.Checkbutton{counter}.TCheckbutton", background = [('!active', '{i.color}'), ('active', '{i.color}'), ('pressed', '{i.color}')])
+        self.Checkbutton{counter} = ttk.Checkbutton(root, text = "{i.text()}", command = self.Checkbutton{counter}clicked, style = "self.Checkbutton{counter}.TCheckbutton")
+        self.Checkbutton{counter}.place(width={i.size().width()}, height={i.size().height()}, x = {i.pos().x() - self.AracKutusu.geometry().right() - 15}, y = {i.pos().y() - self.pencere.geometry().top() - 79})
+""")
+                commands += f"""
+    def Checkbutton{counter}clicked(self):
+        print("Checkbutton{counter} clicked")
+"""
+            
+            #ListWidget/Listbox
+            
+            if(q_origin_class_name == "QListWidget"):
+                self.kodBlogu.insertPlainText(f"""
+        self.Listbox{counter} = tk.Listbox(root, bg = "{i.color}")
+        self.Listbox{counter}.place(width={i.size().width()}, height={i.size().height()}, x = {i.pos().x() - self.AracKutusu.geometry().right() - 15}, y = {i.pos().y() - self.pencere.geometry().top() - 79})
+""")
+            
+            #Radiobutton
+            
+            if(q_origin_class_name == "QRadioButton"):
+                self.kodBlogu.insertPlainText(f"""
+        self.s.map("self.Radiobutton{counter}.TRadiobutton", background = [('!active', '{i.color}'), ('active', '{i.color}'), ('pressed', '{i.color}')])
+        self.Radiobutton{counter} = ttk.Radiobutton(root, text = "{i.text()}", command = self.Radiobutton{counter}clicked, style = "self.Radiobutton{counter}.TRadiobutton")
+        self.Radiobutton{counter}.place(width={i.size().width()}, height={i.size().height()}, x = {i.pos().x() - self.AracKutusu.geometry().right() - 15}, y = {i.pos().y() - self.pencere.geometry().top() - 79})
+""")
+                commands += f"""
+    def Radiobutton{counter}clicked(self):
+        print("Radiobutton{counter} clicked")
+"""
+            #Slider/Scale
+            
+            if(q_origin_class_name == "QSlider"):
+                self.kodBlogu.insertPlainText(f"""
+        self.s.map("self.Scale{counter}.Horizontal.TScale", background = [('!active', '{mainwindow_p.pencere.color}'), ('active', '{mainwindow_p.pencere.color}'), ('pressed', '{mainwindow_p.pencere.color}')])
+        self.Scale{counter} = ttk.Scale(root, command = self.Scale{counter}changed, from_=0, to = 10, style = "self.Scale{counter}.Horizontal.TScale")
+        self.Scale{counter}.place(width=(width={i.size().width()}, height={i.size().height()}, x = {i.pos().x() - self.AracKutusu.geometry().right() - 15}, y = {i.pos().y() - self.pencere.geometry().top() - 79})
+""")
+                commands += f"""
+    def Scale{counter}changed(self, x):
+        print(x)
+"""
+            #Spinbox
+            
+            if(q_origin_class_name == "QSpinBox"):
+                self.kodBlogu.insertPlainText(f"""
+        self.Spinbox{counter} = tk.Spinbox(root, command = self.Spinbox{counter}changed, from_=0, to = 10, bg = "{i.color}")
+        self.Spinbox{counter}.place(width=(width={i.size().width()}, height={i.size().height()}, x = {i.pos().x() - self.AracKutusu.geometry().right() - 15}, y = {i.pos().y() - self.pencere.geometry().top() - 79})
+""")
+                commands += f"""
+    def Spinbox{counter}changed(self):
+        print(self.Spinbox{counter}.get())
+"""
+            
+            #PlainTextEdit/Text
+            
+            if(q_origin_class_name == "QPlainTextEdit"):
+                self.kodBlogu.insertPlainText(f"""
+        self.Text{counter} = tk.Text(root, bg = "{i.color}")
+        self.Text{counter}.insert(tk.END, "{i.toPlainText()}")
+        self.Text{counter}.place(width={i.size().width()}, height={i.size().height()}, x = {i.pos().x() - self.AracKutusu.geometry().right() - 15}, y = {i.pos().y() - self.pencere.geometry().top() - 79})
+""")
+
+        #Son eklemeler
+        self.kodBlogu.insertPlainText(commands)
+
+        self.kodBlogu.insertPlainText(f"""
+if __name__ == "__main__":
+    root = tk.Tk()
+    root['bg'] = "{mainwindow_p.pencere.color}"
+    root.title("{mainwindow_p.pencere.windowTitle()}")
+    app = App(root)
+    root.mainloop()
+""")
+        #pui.py dosyasını yazma
+        try:
+            f = open("pui.py", "w", encoding = "utf-8")
             f.write(self.kodBlogu.toPlainText())
             f.close()
             self.mesajKutusu = QMessageBox()
@@ -349,34 +487,47 @@ top.mainloop()""")
             self.mesajKutusu.setStandardButtons(QMessageBox.Ok)
             self.mesajKutusu.exec()
     
+    #Verilen objeyi sil.
+    def removeObject(self, obj):
+        ObjectName = obj.objectName()[:-1]
+        if ObjectName == "comboBox":
+            exec(f"self.{obj.objectName()}.move(45,80)")
+        elif ObjectName == "buton":
+            exec(f"self.{obj.objectName()}.move(45,110)")
+        elif ObjectName == "lineEdit":
+            exec(f"self.{obj.objectName()}.move(45,140)")
+        elif ObjectName == "label":
+            exec(f"self.{obj.objectName()}.move(45,170)")
+        elif ObjectName == "checkButton":
+            exec(f"self.{obj.objectName()}.move(45,200)")
+        elif ObjectName == "listBox":
+            exec(f"self.{obj.objectName()}.move(45,230)")
+        elif ObjectName == "radioButton":
+            exec(f"self.{obj.objectName()}.move(45,280)")
+        elif ObjectName == "scrollBar":
+            exec(f"self.{obj.objectName()}.move(45,310)")
+        elif ObjectName == "spinBox":
+            exec(f"self.{obj.objectName()}.move(45,340)")
+        else:
+            exec(f"self.{obj.objectName()}.move(45,370)")
+        #Pencerede bulunanlar listesinden objeyi çıkar.
+        try:
+            self.penceredeki_itemler.remove(obj)
+        except KeyError:
+            pass
+        self.selected = None
+        self.hideObjectProps()
+        try:
+            obj.initVars()
+            obj.setStyleSheet("")
+        except Exception as e:
+            print(e)
+    
     def eventFilter(self, obj, event):
         if event.type() == QtCore.QEvent.MouseButtonRelease: 
-            #Çop kutusu alanındaysa objeyi sol tarafa taşı.
-            if (eval(f"self.{obj.objectName()}.pos().x() > self.AracKutusu.geometry().right() + self.copAlani.geometry().left()  - 31 and self.{obj.objectName()}.pos().x() < self.AracKutusu.geometry().right() + self.copAlani.geometry().left()  + 68 and self.{obj.objectName()}.pos().y() > self.copAlani.geometry().top() + 56 and self.{obj.objectName()}.pos().y() < self.copAlani.geometry().top() + 100")):
-                ObjectName = obj.objectName()[:-1]
-                if ObjectName == "comboBox":
-                    exec(f"self.{obj.objectName()}.move(45,80)")
-                elif ObjectName == "buton":
-                    exec(f"self.{obj.objectName()}.move(45,110)")
-                elif ObjectName == "lineEdit":
-                    exec(f"self.{obj.objectName()}.move(45,140)")
-                elif ObjectName == "label":
-                    exec(f"self.{obj.objectName()}.move(45,170)")
-                elif ObjectName == "checkButton":
-                    exec(f"self.{obj.objectName()}.move(45,200)")
-                elif ObjectName == "listBox":
-                    exec(f"self.{obj.objectName()}.move(45,230)")
-                elif ObjectName == "radioButton":
-                    exec(f"self.{obj.objectName()}.move(45,280)")
-                elif ObjectName == "scrollBar":
-                    exec(f"self.{obj.objectName()}.move(45,310)")
-                elif ObjectName == "spinBox":
-                    exec(f"self.{obj.objectName()}.move(45,340)")
-                else:
-                    exec(f"self.{obj.objectName()}.move(45,370)")
-                self.penceredeki_itemler.remove(obj)
+            if (eval(f"self.{obj.objectName()}.pos().x() > self.AracKutusu.geometry().right() + self.copAlani.geometry().left()  - 31 and self.{obj.objectName()}.pos().x() < self.AracKutusu.geometry().right() + self.copAlani.geometry().left()  + 68 and self.{obj.objectName()}.pos().y() > self.copAlani.geometry().top() + 56 and self.{obj.objectName()}.pos().y() < self.copAlani.geometry().top() + 100")):#Çop kutusu alanındaysa objeyi sil.
+               self.removeObject(obj)
             else:#Yoksa pencere dışındaysa pencerenin içine hareket ettir
-                #Xerr = X tarafa ne kadar hareket ettirilmesi lazım
                 Righterr = self.AracKutusu.geometry().right() + 15 + self.pencere.geometry().left() - obj.geometry().left() 
                 Lefterr = obj.geometry().right() - (self.AracKutusu.geometry().right() + self.pencere.geometry().right())
                 Boterr = self.pencere.geometry().top() + 75 - obj.geometry().top()
@@ -394,44 +545,135 @@ top.mainloop()""")
             mainwindow_p.pencere.readjustSize()
         if event.type() == QtCore.QEvent.MouseButtonPress:
             if obj in self.penceredeki_itemler:
-                self.createobjectprops(obj)
+                # self.selectedHighlight(obj)
+                # self.createObjectProps(obj)
+                self.onClick(obj)
         return super().eventFilter(obj, event)
+        
+    #Verilen objedeki belirli bir css parametresini silen fonksiyon.
+    def deleteStyle(self, obj, param):
+        if obj == None:
+            return
+        ss = obj.styleSheet()
+        start = ss.find(param)
+        if(start > -1):
+            end = ss.find(";", start)
+            ss = ss[:start] + ss[end + 1:]
+            obj.setStyleSheet(ss)
     
-    def createobjectprops(self, obj):
+    #Bir widget'a tıklandığında yapılması gerekenleri içeren fonksiyon.
+    def onClick(self, obj):
+        self.deleteStyle(self.selected, "border: ")
+        self.deleteStyle(self.pencere, "border: ")
+        self.selectedHighlight(obj)
+        self.createObjectProps(obj)
+    
+    #Verilen objedeki belirli bir css parametresini değiştiren fonksiyon.
+    def addStyle(self, obj, param, value):
+        ss = obj.styleSheet()
+        #Eğer parametre yoksa yeni bir satır ekle.
+        if(ss.find(param) == -1):
+            newstyle = ss + param + value + ";"
+            obj.setStyleSheet(newstyle)
+            return
+        start = ss.find(param) + len(param)
+        end = ss.find(";", start)
+        ss = ss[:start] + value + ss[end:]
+        obj.setStyleSheet(ss)
+    
+    #Seçilen widget'ın çerçevesini mavi yapan fonksiyon.
+    def selectedHighlight(self, obj):
+        self.addStyle(obj, "border: ", "3px solid blue")
+    
+    #Tıklanan widget'ın özelliklerini göstermeye yarayan fonksiyon.
+    def createObjectProps(self, obj):
         self.selected = obj
-        self.deleteobjectprops()
+        self.hideObjectProps()
         
         if "text" in obj.props:
-            self.groupBox.textcol_label.show()
-            self.groupBox.ozellik_text.show()
-            self.groupBox.ozellik_text.textChanged.connect(self.mirrorText)
-            self.groupBox.ozellik_text.setText(obj.text())
-            
+            self.groupBox.ozellik_metin_label.show()
+            self.groupBox.ozellik_metin_textbox.show()
+            self.groupBox.ozellik_metin_textbox.textEdited.connect(self.mirrorText)
+            self.groupBox.ozellik_metin_textbox.setText(obj.text())
             
         if "title" in obj.props:
-            self.groupBox.titlecol_label.show()
-            self.groupBox.ozellik_baslik.show()
-            self.groupBox.ozellik_baslik.textChanged.connect(self.mirrorText)
-            self.groupBox.ozellik_baslik.setText(obj.windowTitle())
+            self.groupBox.ozellik_baslik_label.show()
+            self.groupBox.ozellik_baslik_textbox.show()
+            self.groupBox.ozellik_baslik_textbox.textEdited.connect(self.mirrorText)
+            self.groupBox.ozellik_baslik_textbox.setText(obj.windowTitle())
+        
+        if "color" in obj.props:
+            self.groupBox.ozellik_renk_label.show()
+            self.groupBox.ozellik_renk_textbox.show()
+            self.addStyle(self.groupBox.ozellik_renk_textbox, "background-color: ", obj.color)
+            self.groupBox.ozellik_renk_textbox.color = obj.color
+            
+        if "width" in obj.props:
+            self.groupBox.ozellik_genislik_label.show()
+            self.groupBox.ozellik_genislik_textbox.show()
+            self.groupBox.ozellik_genislik_textbox.textEdited.connect(self.mirrorText)
+            self.groupBox.ozellik_genislik_textbox.setText(str(obj.size().width()))
+            
+        if "height" in obj.props:
+            self.groupBox.ozellik_yukseklik_label.show()
+            self.groupBox.ozellik_yukseklik_textbox.show()
+            self.groupBox.ozellik_yukseklik_textbox.textEdited.connect(self.mirrorText)
+            self.groupBox.ozellik_yukseklik_textbox.setText(str(obj.size().height()))
     
-    def deleteobjectprops(self):
+    #Özellik penceresindeki bütün özellikleri gizle.
+    def hideObjectProps(self):
         for i in self.groupBox.findChildren(QWidget):
             i.hide()
-
+    
+    #Özellik penceresindeki parametrelerin değişmesi üzerine penceredeki widgetların bu değşikliğe göre değişmesini sağlayan fonksiyon.
     def mirrorText(self, obj):
         if "text" in self.selected.props:
-            self.selected.setText(self.groupBox.ozellik_text.text())
+            self.selected.setText(self.groupBox.ozellik_metin_textbox.text())
         if "title" in self.selected.props:
-            self.selected.setWindowTitle(self.groupBox.ozellik_baslik.text())
-
+            self.selected.setWindowTitle(self.groupBox.ozellik_baslik_textbox.text())
+        if "width" in self.selected.props:
+            try:
+                self.selected.resize(int(self.groupBox.ozellik_genislik_textbox.text()), self.selected.size().height())
+            except:
+                pass
+        if "height" in self.selected.props:
+            try:
+                self.selected.resize(self.selected.size().width(), int(self.groupBox.ozellik_yukseklik_textbox.text()))
+            except Exception as e:
+                pass
+    
+    #Renk özelliğine tıklandığında ve bir renk seçildiğinde objenin ve renk textboxunun rengini değiştiren fonksiyon.
+    def colorChange(self):
+        x = QColorDialog().getColor()
+        if(not x.isValid()):
+            return
+        chosenColor = x.name()
+        self.addStyle(self.groupBox.ozellik_renk_textbox, "background-color: ", chosenColor)
+        #self.groupBox.ozellik_renk_textbox.setStyleSheet(f"background-color: {chosenColor}")
+        self.addStyle(self.selected, "background-color: ", chosenColor)
+        #self.selected.setStyleSheet(f"background-color: {chosenColor}")
+        self.groupBox.ozellik_renk_textbox.color = chosenColor
+        self.selected.color = chosenColor
+    
+    def kaydetFonksiyonu(self):
+        saveload.kaydet(self)
+        
+    def yukleFonksiyonu(self):
+        saveload.yukle(self)
+        
 
 class PLabel(QLabel):
-    
+
     def __init__(self, parent = None):
         super(PLabel, self).__init__(parent)
-        self.name = ""
-        self.props=["text"]
+        self.initVars()
         #self.setMinimumSize(75,60)
+
+    def initVars(self):
+        self.name = ""
+        self.color = ""
+        self.props=["text", "color", "width", "height"]
+        self.resize(100,25)
 
     def mousePressEvent(self, event):
         self.__mousePressPos = None
@@ -467,12 +709,16 @@ class PLabel(QLabel):
         #super(DragButton, self).mouseReleaseEvent(event)
 
 class PSpinBox(QSpinBox):
-    
     def __init__(self, parent = None):
         super(PSpinBox, self).__init__(parent)
-        self.name = ""
-        self.props = []
+        self.initVars()
         #self.setMinimumSize(75,60)
+    
+    def initVars(self):
+        self.name = ""
+        self.color = "#ffffff"
+        self.props = ["color", "width", "height"]
+        self.resize(100,25)
     
     def mousePressEvent(self, event):
         self.__mousePressPos = None
@@ -507,14 +753,22 @@ class PSpinBox(QSpinBox):
         #super(DragButton, self).mouseReleaseEvent(event)
 
 class PPlainTextEdit(QPlainTextEdit):
-    
+
     def __init__(self, parent = None):
         super(PPlainTextEdit, self).__init__(parent)
-        self.name = ""
-        self.props = []
+        self.initVars()
         #self.setMinimumSize(75,60)
     
+    def initVars(self):
+        self.name = ""
+        self.color = "#ffffff"
+        self.props = ["color", "width", "height"]
+        self.resize(100,25)
+    
     def mousePressEvent(self, event):
+        #eventFilter'da düzgün çalışmadığı için kod buraya alındı
+        if self in mainwindow_p.penceredeki_itemler:
+            mainwindow_p.onClick(self)
         self.__mousePressPos = None
         self.__mouseMovePos = None
         if event.button() == Qt.LeftButton:
@@ -547,13 +801,17 @@ class PPlainTextEdit(QPlainTextEdit):
         #super(DragButton, self).mouseReleaseEvent(event)
 
 
-class PScrollBar(QScrollBar):
-    
-    def __init__(self, parent = None):
-        super(PScrollBar, self).__init__(parent)
-        self.name = ""
-        self.props = []
+class PSlider(QSlider):
+
+    def __init__(self, Orientation, parent = None):
+        super(PSlider, self).__init__(Orientation, parent)
+        self.initVars()
         #self.setMinimumSize(75,60)
+    
+    def initVars(self):
+        self.name = ""
+        self.props = ["width", "height"]
+        self.resize(100,25)
     
     def mousePressEvent(self, event):
         self.__mousePressPos = None
@@ -589,13 +847,18 @@ class PScrollBar(QScrollBar):
 
 
 class PRadioButton(QRadioButton):
-    
+
     def __init__(self, parent = None):
         super(PRadioButton, self).__init__(parent)
-        self.name = ""
-        self.props = ["text"]
+        self.initVars()
         #self.setMinimumSize(75,60)
     
+    def initVars(self):
+        self.name = ""
+        self.color = ""
+        self.props = ["text", "color", "width", "height"]
+        self.resize(100,25)
+        
     def mousePressEvent(self, event):
         self.__mousePressPos = None
         self.__mouseMovePos = None
@@ -630,13 +893,18 @@ class PRadioButton(QRadioButton):
 
 
 class PComboBox(QComboBox):
-    
+
     def __init__(self, parent = None):
         super(PComboBox, self).__init__(parent)
-        self.name = ""
-        self.props = []
+        self.initVars()
         #self.setMinimumSize(75,60)
-
+    
+    def initVars(self):
+        self.name = ""
+        self.props = ["color", "width", "height"]
+        self.color = "#ffffff"
+        self.resize(100,25)
+    
     def mousePressEvent(self, event):
         self.__mousePressPos = None
         self.__mouseMovePos = None
@@ -670,14 +938,22 @@ class PComboBox(QComboBox):
         #super(DragButton, self).mouseReleaseEvent(event)
 
 class PListWidget(QListWidget):
-    
+
     def __init__(self, parent = None):
         super(PListWidget, self).__init__(parent)
-        self.name = ""
-        self.props = []
+        self.initVars()
         #self.setMinimumSize(75,60)
-
+    
+    def initVars(self):
+        self.name = ""
+        self.color = "#ffffff"
+        self.props = ["color", "width", "height"]
+        self.resize(100,40)
+        
     def mousePressEvent(self, event):
+        #eventFilter'da düzgün çalışmadığı için kod buraya alındı
+        if self in mainwindow_p.penceredeki_itemler:
+            mainwindow_p.onClick(self)
         self.__mousePressPos = None
         self.__mouseMovePos = None
         if event.button() == Qt.LeftButton:
@@ -711,12 +987,17 @@ class PListWidget(QListWidget):
 
 
 class PCheckButton(QCheckBox):
-    
+
     def __init__(self, parent = None):
         super(PCheckButton, self).__init__(parent)
-        self.name = ""
-        self.props = ["text"]
+        self.initVars()
         #self.setMinimumSize(75,60)
+    
+    def initVars(self):
+        self.name = ""
+        self.color = ""
+        self.props = ["text", "color", "width", "height"]
+        self.resize(100,25)
 
     def mousePressEvent(self, event):
         self.__mousePressPos = None
@@ -751,12 +1032,17 @@ class PCheckButton(QCheckBox):
         #super(DragButton, self).mouseReleaseEvent(event)
 
 class PLineEdit(QLineEdit):
-    
+
     def __init__(self, parent = None):
         super(PLineEdit, self).__init__(parent)
-        self.name = ""
-        self.props = []
+        self.initVars()
         #self.setMinimumSize(75,60)
+
+    def initVars(self):
+        self.name = ""
+        self.color = "#ffffff"
+        self.props = ["color", "width", "height"]
+        self.resize(100,25)
 
     def mousePressEvent(self, event):
         self.__mousePressPos = None
@@ -793,13 +1079,17 @@ class PLineEdit(QLineEdit):
     
 
 class PPushButton(QPushButton):
-    
+
     def __init__(self, parent = None):
         super(PPushButton, self).__init__(parent)
-        self.name = ""
-        self.props = ["text"]
+        self.initVars()
         #self.setMinimumSize(75,60)
 
+    def initVars(self):
+        self.name = ""
+        self.color = DEFAULT_WINDOW_COLOR
+        self.props = ["text", "color", "width", "height"]
+        self.resize(100,25)
     
     def mousePressEvent(self, event):
         self.__mousePressPos = None
@@ -836,13 +1126,17 @@ class PPushButton(QPushButton):
 
 
 class PGroupBox(QGroupBox):
-    
+
     def __init__(self, parent = None):
         super(PGroupBox, self).__init__(parent)
-        self.name = ""
-        self.props = []
+        self.initVars()
         #self.setMinimumSize(150,100)
 
+    def initVars(self):
+        self.name = ""
+        self.color = "#ffffff"
+        self.props = ["color", "width", "height"]
+        self.resize(100,25)
     
     def mousePressEvent(self, event):
         self.__mousePressPos = None
@@ -877,6 +1171,17 @@ class PGroupBox(QGroupBox):
                 return
 
         #super(DragButton, self).mouseReleaseEvent(event)
+
+class ColorLineEdit(QLineEdit):
+
+    def __init__(self, mainp, parent  = None):
+        super(ColorLineEdit, self).__init__(parent)
+        self.setReadOnly(True)
+        color = ""
+        self.mainp = mainp
+    def mousePressEvent(self, event):
+        self.mainp.colorChange()
+        super().mousePressEvent(event)
 
 if __name__ == "__main__":
     app = QApplication([])
