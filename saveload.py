@@ -24,10 +24,14 @@ def kaydet(ana_pencere):
                 liste["text"] = i.text()
             except Exception as e:
                 pass
+            try:
+                liste["color"] = i.color
+            except Exception as e:
+                pass
             json.dump(liste, outfile, ensure_ascii = False, indent = 4)
             outfile.write(",")
         #MdiWindow
-        liste = {"başlık": ana_pencere.pencere.windowTitle(),  "size": str(ana_pencere.pencere.width()) + "," + str(ana_pencere.pencere.height()), "css": ana_pencere.pencere.styleSheet()}
+        liste = {"başlık": ana_pencere.pencere.windowTitle(),  "size": str(ana_pencere.pencere.width()) + "," + str(ana_pencere.pencere.height()), "css": ana_pencere.pencere.styleSheet(), "color": ana_pencere.pencere.color}
         json.dump(liste, outfile, ensure_ascii = False, indent = 4)
         outfile.write("]")
 
@@ -59,6 +63,13 @@ ana_pencere.{obje["obje_ismi"]}.setText("{obje["text"]}")
 """)
             except KeyError:
                 pass
+            try:
+                exec(f"""
+ana_pencere.{obje["obje_ismi"]}.color = "{obje["color"]}"
+""")
+            except KeyError:
+                pass
+                
             exec(f"""
 ana_pencere.{obje["obje_ismi"]}.move({obje["pos"]})
 ana_pencere.{obje["obje_ismi"]}.setStyleSheet("{obje["css"]}")
@@ -69,6 +80,7 @@ ana_pencere.penceredeki_itemler.add(ana_pencere.{obje["obje_ismi"]})
     objeson = obje_listesi[-1]
     exec(f"""
 ana_pencere.pencere.setStyleSheet("{objeson["css"]}")
+ana_pencere.pencere.color = "{objeson["color"]}"
 ana_pencere.pencere.resize({objeson["size"]})
 ana_pencere.pencere.setWindowTitle("{objeson["başlık"]}")
 """)
